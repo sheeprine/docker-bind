@@ -1,0 +1,8 @@
+zone "@ZONE@" {
+    type @TYPE@;
+    file "@FOLDER@/@ZONE@.zone";
+    masters { masters; };
+    allow-query { any; };
+    allow-notify { masters; };
+    notify no;
+};

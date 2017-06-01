@@ -1,0 +1,27 @@
+options {
+    directory "/var/bind";
+    pid-file "/run/named/named.pid";
+
+    listen-on { any; };
+    listen-on-v6 { none; };
+
+    allow-query { trusted; };
+    allow-query-cache { trusted; };
+    allow-recursion { trusted; };
+    allow-transfer { none; };
+    allow-update { none; };
+
+    forward first;
+    forwarders {
+@FORWARDERS@};
+
+    // DKIM
+    check-names slave warn;
+    check-names response warn;
+    check-names master warn;
+};
+
+include "@RNDC_KEY_FILE@";
+controls {
+    inet 127.0.0.1 port 953 allow { trusted; } keys { "rndc-key"; };
+};
