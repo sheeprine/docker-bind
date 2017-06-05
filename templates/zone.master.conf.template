@@ -2,5 +2,5 @@ zone "@ZONE@" {
     type @TYPE@;
     file "@FOLDER@/@ZONE@.zone";
     allow-query { any; };
-    allow-transfer { masters; };
+    allow-transfer { xfer; };
 };
