@@ -23,5 +23,5 @@ options {
 
 include "@RNDC_KEY_FILE@";
 controls {
-    inet 127.0.0.1 port 953 allow { trusted; } keys { "rndc-key"; };
+    inet 127.0.0.1 port 953 allow { trusted; } keys { "@RNDC_KEY_NAME@"; };
 };
