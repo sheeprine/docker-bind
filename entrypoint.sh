@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
 
+# Config path
 CONFIG_DIR="/etc/bind"
 CONFIG_FILE="${CONFIG_DIR}/named.conf"
 MASTERS_ZONE_DIR="/var/bind/pri"
+
+# Templates
 ZONE_MASTER_TEMPLATE="/templates/zone.master.conf.template"
 ZONE_SLAVE_TEMPLATE="/templates/zone.slave.conf.template"
 
+# ACLs
 XFER_IP=${XFER_IP:-none}
 TRUSTED_IP=${TRUSTED_IP:-127.0.0.0/8 ::1/128}
 MASTERS_IP=${MASTERS_IP:-}
@@ -18,14 +22,36 @@ SLAVE_ZONES=${SLAVE_ZONES:-}
 RNDC_KEY_LINK="/etc/bind/rndc.key"
 RNDC_KEY_FILE=${RNDC_KEY_FILE:-$RNDC_KEY_LINK}
 RNDC_KEY_NAME=${RNDC_KEY_NAME:-rndc-key}
+TSIG_KEY_LINK="/etc/bind/tsig.key"
+TSIG_KEY_FILE=${TSIG_KEY_FILE:-$TSIG_KEY_LINK}
+TSIG_KEY_NAME=${TSIG_KEY_NAME:-}
+
+check_or_create_key() {
+    local type=$1
+    local file=$2
+    local link=$3
+    local name=$4
+    if [ ! -s $file -a -n "$name" ]; then
+        if [ $type = "tsig" ]; then
+            tsig-keygen -a hmac-sha512 $name > $link
+        else
+            rndc-confgen -a -k $name -c $link
+        fi
+        chown named: $link
+        file=$link
+    else
+        test -l $link && rm $link
+        ln -s $file $link
+    fi
+    echo $file
+}
 
 check_or_create_rndc() {
-    if [ ! -f $RNDC_KEY_FILE ]; then
-        rndc-confgen -a
-        RNDC_KEY_FILE=$RNDC_KEY_LINK
-    else
-        ln -s $RNDC_KEY_FILE $RNDC_KEY_LINK
-    fi
+    check_or_create_key "rndc" $RNDC_KEY_FILE $RNDC_KEY_LINK $RNDC_KEY_NAME
+}
+
+check_or_create_tsig() {
+    check_or_create_key "tsig" $TSIG_KEY_FILE $TSIG_KEY_LINK $TSIG_KEY_NAME
 }
 
 format_ips() {
@@ -65,23 +91,33 @@ create_main_config() {
     sed "s~@RNDC_KEY_FILE@~$RNDC_KEY_FILE~g" >>${CONFIG_FILE}
 }
 
-rm $CONFIG_FILE
-check_or_create_rndc
+configure_bind() {
+    RNDC_KEY_FILE=$(check_or_create_rndc)
+    TSIG_KEY_FILE=$(check_or_create_tsig)
 
-create_list "acl" "xfer" $XFER_IP >>${CONFIG_FILE}
-create_list "acl" "trusted" $TRUSTED_IP >>${CONFIG_FILE}
-create_list "acl" "masters" $MASTERS_IP >>${CONFIG_FILE}
-create_list "masters" "masters" $MASTERS_IP >>${CONFIG_FILE}
+    if [ -n "$TSIG_KEY_NAME" ]; then
+        echo "include \"$TSIG_KEY_LINK\";" >>${CONFIG_FILE}
+        echo "acl \"xfer\" { key \"$TSIG_KEY_NAME\"; };" >>${CONFIG_FILE}
+    else
+        create_list "acl" "xfer" $XFER_IP >>${CONFIG_FILE}
+    fi
+    create_list "acl" "trusted" $TRUSTED_IP >>${CONFIG_FILE}
+    create_list "acl" "masters" $MASTERS_IP >>${CONFIG_FILE}
+    create_list "masters" "masters" $MASTERS_IP >>${CONFIG_FILE}
 
-create_main_config
+    create_main_config
 
-for zone in $(ls $MASTERS_ZONE_DIR | grep -v '\.sub\.zone$'); do
-    create_zone $(echo $zone | sed "s~\.zone$~~") master
-done
+    for zone in $(ls $MASTERS_ZONE_DIR | grep -v '\.sub\.zone$'); do
+        create_zone $(echo $zone | sed "s~\.zone$~~") master
+    done
 
-for zone in $SLAVE_ZONES; do
-    create_zone $zone slave
-done
+    for zone in $SLAVE_ZONES; do
+        create_zone $zone slave
+    done
+}
+
+test -w $CONFIG_FILE && rm $CONFIG_FILE
+test ! -f $CONFIG_FILE && configure_bind
 
 VERSION=$(named -v | cut -d' ' -f2)
 echo "Starting bind $VERSION..."
