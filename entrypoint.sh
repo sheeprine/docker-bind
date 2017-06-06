@@ -2,6 +2,7 @@
 
 CONFIG_DIR="/etc/bind"
 CONFIG_FILE="${CONFIG_DIR}/named.conf"
+MASTERS_ZONE_DIR="/var/bind/pri"
 ZONE_MASTER_TEMPLATE="/templates/zone.master.conf.template"
 ZONE_SLAVE_TEMPLATE="/templates/zone.slave.conf.template"
 
@@ -11,7 +12,6 @@ MASTERS_IP=${MASTERS_IP:-}
 FORWARDERS=${FORWARDERS:-8.8.4.4 8.8.8.8 2001:4860:4860::8888 2001:4860:4860::8844}
 
 # Zones definition
-MASTER_ZONES=${MASTER_ZONES:-}
 SLAVE_ZONES=${SLAVE_ZONES:-}
 
 # Security
@@ -75,8 +75,8 @@ create_list "masters" "masters" $MASTERS_IP >>${CONFIG_FILE}
 
 create_main_config
 
-for zone in $MASTER_ZONES; do
-    create_zone $zone master
+for zone in $(ls $MASTERS_ZONE_DIR | grep -v '\.sub\.zone$'); do
+    create_zone $(echo $zone | sed "s~\.zone$~~") master
 done
 
 for zone in $SLAVE_ZONES; do
