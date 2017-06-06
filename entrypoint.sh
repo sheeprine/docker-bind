@@ -1,12 +1,11 @@
 #!/usr/bin/env sh
-set -x
 
 CONFIG_DIR="/etc/bind"
 CONFIG_FILE="${CONFIG_DIR}/named.conf"
 ZONE_MASTER_TEMPLATE="/templates/zone.master.conf.template"
 ZONE_SLAVE_TEMPLATE="/templates/zone.slave.conf.template"
 
-XFER_IP=${XFER_IP:-}
+XFER_IP=${XFER_IP:-none}
 TRUSTED_IP=${TRUSTED_IP:-127.0.0.0/8 ::1/128}
 MASTERS_IP=${MASTERS_IP:-}
 FORWARDERS=${FORWARDERS:-8.8.4.4 8.8.8.8 2001:4860:4860::8888 2001:4860:4860::8844}
@@ -18,6 +17,7 @@ SLAVE_ZONES=${SLAVE_ZONES:-}
 # Security
 RNDC_KEY_LINK="/etc/bind/rndc.key"
 RNDC_KEY_FILE=${RNDC_KEY_FILE:-$RNDC_KEY_LINK}
+RNDC_KEY_NAME=${RNDC_KEY_NAME:-rndc-key}
 
 check_or_create_rndc() {
     if [ ! -f $RNDC_KEY_FILE ]; then
@@ -61,6 +61,7 @@ create_zone() {
 create_main_config() {
     sed "s~@FORWARDERS@~$(format_ips $FORWARDERS)~g" \
         /templates/named.conf.template | \
+    sed "s~@RNDC_KEY_NAME@~$RNDC_KEY_NAME~g" | \
     sed "s~@RNDC_KEY_FILE@~$RNDC_KEY_FILE~g" >>${CONFIG_FILE}
 }
 
