@@ -81,6 +81,7 @@ create_zone() {
     fi
     sed "s~@ZONE@~$1~g" $zone_template | \
     sed "s~@TYPE@~$zone_type~g" | \
+    sed "s~@XFER_ACL_ENABLE@~$(test -n "$TSIG_KEY_NAME" && echo '//')~g" | \
     sed "s~@FOLDER@~$zone_folder~g" >>${CONFIG_FILE}
 }
 
@@ -94,7 +95,7 @@ create_main_config() {
     if [ -n "$TSIG_KEY_NAME" -a "$XFER_IP" = "none" ]; then
         sed -i "s~@XFER_ACL_OR_KEY@~key \"$TSIG_KEY_NAME\";~g" ${CONFIG_FILE}
     else
-        sed -i "s~@XFER_ACL_OR_KEY@~none~g" ${CONFIG_FILE}
+        sed -i "s~@XFER_ACL_OR_KEY@~none;~g" ${CONFIG_FILE}
     fi
 }
 
