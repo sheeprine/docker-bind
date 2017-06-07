@@ -8,7 +8,7 @@ options {
     allow-query { trusted; };
     allow-query-cache { trusted; };
     allow-recursion { trusted; };
-    allow-transfer { none; };
+    allow-transfer { @XFER_ACL_OR_KEY@ };
     allow-update { none; };
 
     forward first;

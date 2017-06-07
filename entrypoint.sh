@@ -89,6 +89,13 @@ create_main_config() {
         /templates/named.conf.template | \
     sed "s~@RNDC_KEY_NAME@~$RNDC_KEY_NAME~g" | \
     sed "s~@RNDC_KEY_FILE@~$RNDC_KEY_FILE~g" >>${CONFIG_FILE}
+
+    # By default use TSIG key for xfer
+    if [ -n "$TSIG_KEY_NAME" -a "$XFER_IP" = "none" ]; then
+        sed -i "s~@XFER_ACL_OR_KEY@~key \"$TSIG_KEY_NAME\";~g" ${CONFIG_FILE}
+    else
+        sed -i "s~@XFER_ACL_OR_KEY@~none~g" ${CONFIG_FILE}
+    fi
 }
 
 configure_bind() {
@@ -97,8 +104,8 @@ configure_bind() {
 
     if [ -n "$TSIG_KEY_NAME" ]; then
         echo "include \"$TSIG_KEY_LINK\";" >>${CONFIG_FILE}
-        echo "acl \"xfer\" { key \"$TSIG_KEY_NAME\"; };" >>${CONFIG_FILE}
     else
+        # TODO(sheeprine): Add ACL by IP + key
         create_list "acl" "xfer" $XFER_IP >>${CONFIG_FILE}
     fi
     create_list "acl" "trusted" $TRUSTED_IP >>${CONFIG_FILE}
