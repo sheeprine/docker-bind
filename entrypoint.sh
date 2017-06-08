@@ -85,6 +85,10 @@ create_zone() {
     sed "s~@FOLDER@~$zone_folder~g" >>${CONFIG_FILE}
 }
 
+create_server() {
+    echo "server $1 { keys \"$TSIG_KEY_NAME\"; };" >>${CONFIG_FILE}
+}
+
 create_main_config() {
     sed "s~@FORWARDERS@~$(format_ips $FORWARDERS)~g" \
         /templates/named.conf.template | \
@@ -114,6 +118,12 @@ configure_bind() {
     create_list "masters" "masters" $MASTERS_IP >>${CONFIG_FILE}
 
     create_main_config
+
+    if [ -n "$TSIG_KEY_NAME" ]; then
+        for server in $MASTERS_IP; do
+            create_server $server
+        done
+    fi
 
     for zone in $(ls $MASTERS_ZONE_DIR | grep -v '\.sub\.zone$'); do
         create_zone $(echo $zone | sed "s~\.zone$~~") master
