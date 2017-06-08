@@ -31,7 +31,7 @@ check_or_create_key() {
     local file=$2
     local link=$3
     local name=$4
-    if [ ! -s $file -a -n "$name" ]; then
+    if [ ! -e $file -a -n "$name" ]; then
         if [ $type = "tsig" ]; then
             tsig-keygen -a hmac-sha512 $name > $link
         else
