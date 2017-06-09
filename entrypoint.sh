@@ -14,6 +14,7 @@ XFER_IP=${XFER_IP:-none}
 TRUSTED_IP=${TRUSTED_IP:-127.0.0.0/8 ::1/128}
 MASTERS_IP=${MASTERS_IP:-}
 FORWARDERS=${FORWARDERS:-8.8.4.4 8.8.8.8 2001:4860:4860::8888 2001:4860:4860::8844}
+NOTIFIERS_IP=${NOTIFIERS_IPS:-$MASTERS_IP}
 
 # Zones definition
 SLAVE_ZONES=${SLAVE_ZONES:-}
@@ -114,7 +115,7 @@ configure_bind() {
         create_list "acl" "xfer" $XFER_IP >>${CONFIG_FILE}
     fi
     create_list "acl" "trusted" $TRUSTED_IP >>${CONFIG_FILE}
-    create_list "acl" "masters" $MASTERS_IP >>${CONFIG_FILE}
+    create_list "acl" "notifiers" $NOTIFIERS_IP >>${CONFIG_FILE}
     create_list "masters" "masters" $MASTERS_IP >>${CONFIG_FILE}
 
     create_main_config
